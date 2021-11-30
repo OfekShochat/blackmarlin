@@ -317,6 +317,9 @@ pub fn search<Search: SearchType>(
                     local_context.reset_skip_move(ply);
                     if s_score < s_beta {
                         extension += 1;
+                        if !Search::PV && s_score + 75 < s_beta {
+                            extension += 1;
+                        }
                     } else if s_beta >= beta {
                         /*
                         Multi-cut:
