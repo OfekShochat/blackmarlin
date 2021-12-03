@@ -270,69 +270,42 @@ impl StdEvaluator {
             let defenders = *board.color_combined(color);
             let blockers = *board.combined();
             for piece in &ALL_PIECES {
-                match piece {
+                let mut potential = match piece {
                     Piece::Pawn => {
-                        let mut potential =
-                            chess::get_pawn_attacks(target_square, !color, blockers)
-                                & defenders
-                                & board.pieces(Piece::Pawn);
-                        if potential != EMPTY {
-                            let attacker = potential.next().unwrap();
-                            make_move = ChessMove::new(attacker, target_square, None);
-                            continue 'outer;
-                        }
+                        chess::get_pawn_attacks(target_square, !color, blockers)
+                            & defenders
+                            & board.pieces(Piece::Pawn)
                     }
                     Piece::Knight => {
-                        let mut potential = chess::get_knight_moves(target_square)
+                        chess::get_knight_moves(target_square)
                             & board.pieces(Piece::Knight)
-                            & defenders;
-                        if potential != EMPTY {
-                            let attacker = potential.next().unwrap();
-                            make_move = ChessMove::new(attacker, target_square, None);
-                            continue 'outer;
-                        }
+                            & defenders
                     }
                     Piece::Bishop => {
-                        let mut potential = chess::get_bishop_moves(target_square, blockers)
+                        chess::get_bishop_moves(target_square, blockers)
                             & defenders
-                            & board.pieces(Piece::Bishop);
-                        if potential != EMPTY {
-                            let attacker = potential.next().unwrap();
-                            make_move = ChessMove::new(attacker, target_square, None);
-                            continue 'outer;
-                        }
+                            & board.pieces(Piece::Bishop)
                     }
                     Piece::Rook => {
-                        let mut potential = chess::get_rook_moves(target_square, blockers)
+                        chess::get_rook_moves(target_square, blockers)
                             & board.pieces(Piece::Rook)
-                            & defenders;
-                        if potential != EMPTY {
-                            let attacker = potential.next().unwrap();
-                            make_move = ChessMove::new(attacker, target_square, None);
-                            continue 'outer;
-                        }
+                            & defenders
                     }
                     Piece::Queen => {
-                        let mut potential = chess::get_rook_moves(target_square, blockers)
+                        chess::get_rook_moves(target_square, blockers)
                             & chess::get_bishop_moves(target_square, blockers)
                             & board.pieces(Piece::Queen)
-                            & defenders;
-                        if potential != EMPTY {
-                            let attacker = potential.next().unwrap();
-                            make_move = ChessMove::new(attacker, target_square, None);
-                            continue 'outer;
-                        }
+                            & defenders
                     }
                     Piece::King => {
-                        let mut potential = chess::get_king_moves(target_square)
-                            & board.pieces(Piece::King)
-                            & defenders;
-                        if potential != EMPTY {
-                            let attacker = potential.next().unwrap();
-                            make_move = ChessMove::new(attacker, target_square, None);
-                            continue 'outer;
-                        }
+                        chess::get_king_moves(target_square) & board.pieces(Piece::King) & defenders
                     }
+                };
+
+                if potential != EMPTY {
+                    let attacker = potential.next().unwrap();
+                    make_move = ChessMove::new(attacker, target_square, None);
+                    continue 'outer;
                 }
             }
             index = i;
@@ -363,11 +336,11 @@ impl StdEvaluator {
             return Evaluation::new(0);
         }
         let phase = (board.pieces(Piece::Pawn).popcnt() * PAWN_PHASE
-                + board.pieces(Piece::Knight).popcnt() * KNIGHT_PHASE
-                + board.pieces(Piece::Bishop).popcnt() * BISHOP_PHASE
-                + board.pieces(Piece::Rook).popcnt() * ROOK_PHASE
-                + board.pieces(Piece::Queen).popcnt() * QUEEN_PHASE)
-                .min(TOTAL_PHASE) as i16;
+            + board.pieces(Piece::Knight).popcnt() * KNIGHT_PHASE
+            + board.pieces(Piece::Bishop).popcnt() * BISHOP_PHASE
+            + board.pieces(Piece::Rook).popcnt() * ROOK_PHASE
+            + board.pieces(Piece::Queen).popcnt() * QUEEN_PHASE)
+            .min(TOTAL_PHASE) as i16;
         let turn = match board.side_to_move() {
             Color::White => 1,
             Color::Black => -1,
@@ -375,10 +348,7 @@ impl StdEvaluator {
         #[cfg(feature = "nnue")]
         {
             return Evaluation::new(
-                self.nnue
-                    .feed_forward(board, (phase as usize / 12).min(1))
-                    * turn
-                    + NNUE_TEMPO,
+                self.nnue.feed_forward(board, (phase as usize / 12).min(1)) * turn + NNUE_TEMPO,
             );
         }
         reset_trace!(&mut self.trace);
@@ -400,7 +370,7 @@ impl StdEvaluator {
     }
 
     //TODO: investigate tapered evaluation
-    fn piece_pts(piece: Piece) -> i16 {
+    const fn piece_pts(piece: Piece) -> i16 {
         match piece {
             Piece::Pawn => 100,
             Piece::Knight => 300,

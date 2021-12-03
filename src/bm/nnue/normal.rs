@@ -41,9 +41,9 @@ impl<'a, const INPUT: usize, const OUTPUT: usize> Incremental<'a, INPUT, OUTPUT>
     }
 
     #[inline]
-    pub fn incr_ff<const CHANGE: i16>(&mut self, index: usize) {
+    pub fn incr_ff<const CHANGE: i8>(&mut self, index: usize) {
         for (out, &weight) in self.out.iter_mut().zip(&self.weights[index]) {
-            *out += weight as i16 * CHANGE;
+            *out += (weight * CHANGE) as i16;
         }
     }
 
@@ -54,12 +54,12 @@ impl<'a, const INPUT: usize, const OUTPUT: usize> Incremental<'a, INPUT, OUTPUT>
 
 #[derive(Debug, Clone)]
 pub struct Dense<'a, const INPUT: usize, const OUTPUT: usize> {
-    weights: &'a [[i8; OUTPUT]; INPUT],
+    weights: &'a [[i32; OUTPUT]; INPUT],
     bias: [i32; OUTPUT],
 }
 
 impl<'a, const INPUT: usize, const OUTPUT: usize> Dense<'a, INPUT, OUTPUT> {
-    pub fn new(weights: &'a [[i8; OUTPUT]; INPUT], bias: [i16; OUTPUT]) -> Self {
+    pub fn new(weights: &'a [[i32; OUTPUT]; INPUT], bias: [i16; OUTPUT]) -> Self {
         Self {
             weights,
             bias: i16_to_i32(bias),
@@ -73,16 +73,23 @@ impl<'a, const INPUT: usize, const OUTPUT: usize> Dense<'a, INPUT, OUTPUT> {
         b_inputs: &[i8; INPUT],
         bucket: usize,
     ) -> [i32; OUTPUT] {
-        let mut out = self.bias;
+        let mut w_out = self.bias;
+        let mut b_out = self.bias;
         for ((&w_input, &b_input), weights) in
             w_inputs.iter().zip(b_inputs.iter()).zip(&*self.weights)
         {
-            for (out, &weight) in out[bucket..bucket + 1]
+            for ((w_out, b_out), &weight) in w_out[bucket..bucket + 1]
                 .iter_mut()
+                .zip(b_out[bucket..bucket + 1].iter_mut())
                 .zip(weights[bucket..bucket + 1].iter())
             {
-                *out += weight as i32 * (w_input as i32 - b_input as i32) / 2;
+                *w_out += weight * w_input as i32;
+                *b_out += weight * b_input as i32;
             }
+        }
+        let mut out = [0_i32; OUTPUT];
+        for (out, (w_out, b_out)) in out.iter_mut().zip(w_out.iter_mut().zip(b_out.iter_mut())) {
+            *out = (*w_out as i32 - *b_out as i32) / 2;
         }
         out
     }
