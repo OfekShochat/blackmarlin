@@ -378,15 +378,6 @@ pub fn search<Search: SearchType>(
             }
 
             /*
-            At low depth, in non-PV nodes, we assume it's safe to prune a move
-            if evaluation "corrected" by history doesn't beat alpha
-            */
-            let do_hist_fut = !Search::PV && !in_check && depth <= 2;
-            if do_hist_fut && eval + h_score + SEARCH_PARAMS.get_fp() < alpha {
-                continue;
-            }
-
-            /*
             In non-PV nodes If a move evaluated by SEE isn't good enough to beat alpha - a static margin
             we assume it's safe to prune this move
             */
