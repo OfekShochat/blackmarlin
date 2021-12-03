@@ -89,7 +89,7 @@ impl<'a, const INPUT: usize, const OUTPUT: usize> Dense<'a, INPUT, OUTPUT> {
         }
         let mut out = [0_i32; OUTPUT];
         for (out, (w_out, b_out)) in out.iter_mut().zip(w_out.iter_mut().zip(b_out.iter_mut())) {
-            *out = (*w_out as i32 - *b_out as i32) / 2;
+            *out = (*w_out - *b_out) / 2;
         }
         out
     }
