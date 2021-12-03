@@ -87,11 +87,10 @@ impl<'a, const INPUT: usize, const OUTPUT: usize> Dense<'a, INPUT, OUTPUT> {
                 *b_out += weight * b_input as i32;
             }
         }
-        let mut out = [0_i32; OUTPUT];
-        for (out, (w_out, b_out)) in out.iter_mut().zip(w_out.iter_mut().zip(b_out.iter_mut())) {
-            *out = (*w_out - *b_out) / 2;
+        for (w_out, b_out) in w_out.iter_mut().zip(b_out.iter_mut()) {
+            *w_out = (*w_out - *b_out) / 2;
         }
-        out
+        w_out
     }
 }
 
