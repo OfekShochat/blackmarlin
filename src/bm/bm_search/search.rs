@@ -150,6 +150,9 @@ pub fn search<Search: SearchType>(
         false
     };
 
+    let curr_piece_count =  position.board().combined().popcnt();
+    local_context.push_piece_count(curr_piece_count, ply);
+
     if !Search::PV && !in_check && skip_move.is_none() {
         /*
         Reverse Futility Pruning:
@@ -161,6 +164,30 @@ pub fn search<Search: SearchType>(
             let f_margin = SEARCH_PARAMS.get_rev_fp().threshold(depth);
             if eval - f_margin >= beta {
                 return (None, eval);
+            }
+        }
+
+        let simplification = if ply < 4 || in_check {
+            0
+        } else if let Some(piece_count) = local_context.get_piece_count(ply - 4) {
+            piece_count - curr_piece_count
+        } else {
+            0
+        };
+        if let Some(e) = local_context.get_eval(ply - 4) {
+            if ply > 4 && (e - eval).raw() > 500 && simplification > 2 {
+                return (
+                    None,
+                    q_search(
+                        position,
+                        local_context,
+                        shared_context,
+                        0,
+                        SEARCH_PARAMS.get_q_search_depth(),
+                        alpha,
+                        beta,
+                    ),
+                );
             }
         }
 
@@ -250,17 +277,6 @@ pub fn search<Search: SearchType>(
     } else {
         MoveEntry::new()
     };
-
-    let curr_piece_count =  position.board().combined().popcnt();
-    local_context.push_piece_count(curr_piece_count, ply);
-    let simplification = if ply < 4 || in_check {
-        0
-    } else if let Some(piece_count) = local_context.get_piece_count(ply - 4) {
-        piece_count - curr_piece_count
-    } else {
-        0
-    };
-    let p = eval.raw() > 200 && simplification > 2;
 
     let mut move_gen = OrderedMoveGen::new(
         position.board(),
@@ -436,9 +452,6 @@ pub fn search<Search: SearchType>(
                     reduction -= 1;
                 };
                 if improving {
-                    reduction -= 1;
-                }
-                if p {
                     reduction -= 1;
                 }
                 reduction = reduction.min(depth as i16 - 1).max(0);
