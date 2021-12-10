@@ -251,6 +251,17 @@ pub fn search<Search: SearchType>(
         MoveEntry::new()
     };
 
+    let curr_piece_count =  position.board().combined().popcnt();
+    local_context.push_piece_count(curr_piece_count, ply);
+    let simplification = if ply < 4 || in_check {
+        0
+    } else if let Some(piece_count) = local_context.get_piece_count(ply - 4) {
+        piece_count - curr_piece_count
+    } else {
+        0
+    };
+    let p = eval.raw() > 200 && simplification > 2;
+
     let mut move_gen = OrderedMoveGen::new(
         position.board(),
         best_move,

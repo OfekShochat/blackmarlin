@@ -203,6 +203,7 @@ pub struct LocalContext {
     threat_moves: Vec<MoveEntry<{ SEARCH_PARAMS.get_threat_move_cnt() }>>,
     nodes: u32,
     abort: bool,
+    piece_count_stack: Vec<u32>,
 }
 
 impl SharedContext {
@@ -269,6 +270,19 @@ impl LocalContext {
             self.eval_stack.push(eval);
         } else {
             self.eval_stack[ply as usize] = eval;
+        }
+    }
+
+    #[inline]
+    pub fn get_piece_count(&self, ply: u32) -> Option<u32> {
+        self.piece_count_stack.get(ply as usize).copied()
+    }
+
+    pub fn push_piece_count(&mut self, piece_count: u32, ply: u32) {
+        if ply as usize >= self.piece_count_stack.len() {
+            self.piece_count_stack.push(piece_count);
+        } else {
+            self.piece_count_stack[ply as usize] = piece_count;
         }
     }
 
@@ -461,6 +475,7 @@ impl AbRunner {
                 sel_depth: 0,
                 nodes: 0,
                 abort: false,
+                piece_count_stack: vec![],
             },
             position,
         }
