@@ -374,7 +374,7 @@ impl StdEvaluator {
         };
         #[cfg(feature = "nnue")]
         {
-            if Self::pieces_pts(board, board.side_to_move()).abs() < 900 {
+            if Self::pieces_pts(board).abs() < 900 {
                 return Evaluation::new(self.nnue.feed_forward(board, 0) * turn + NNUE_TEMPO);   
             }
         }
@@ -409,13 +409,12 @@ impl StdEvaluator {
     }
 
     #[cfg(feature = "nnue")]
-    fn pieces_pts(board: &Board, us: Color) -> i16 {
+    fn pieces_pts(board: &Board) -> i16 {
         let mut mat = 0;
         for sq in board.combined().into_iter() {
-            if board.color_on(sq).unwrap() == us {
-                mat += Self::piece_pts(board.piece_on(sq).unwrap())
-            } else {
-                mat -= Self::piece_pts(board.piece_on(sq).unwrap())
+            match board.color_on(sq).unwrap() {
+                Color::White => mat += Self::piece_pts(board.piece_on(sq).unwrap()),
+                Color::Black => mat -= Self::piece_pts(board.piece_on(sq).unwrap())
             }
         }
         mat
