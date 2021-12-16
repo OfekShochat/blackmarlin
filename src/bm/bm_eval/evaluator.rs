@@ -374,12 +374,14 @@ impl StdEvaluator {
         };
         #[cfg(feature = "nnue")]
         {
-            return Evaluation::new(
-                self.nnue
-                    .feed_forward(board, (phase as usize / 12).min(1))
-                    * turn
-                    + NNUE_TEMPO,
-            );
+            if Self::pieces_pts(board, board.side_to_move()).abs() < 900 {
+                return Evaluation::new(
+                    self.nnue
+                        .feed_forward(board, (phase as usize / 12).min(1))
+                        * turn
+                        + NNUE_TEMPO,
+                );
+            }
         }
         reset_trace!(&mut self.trace);
         trace_tempo!(&mut self.trace, board.side_to_move());
@@ -397,6 +399,18 @@ impl StdEvaluator {
             + self.evaluate_threats(board);
 
         Evaluation::new((eval * turn + TEMPO).convert(phase))
+    }
+
+    fn pieces_pts(board: &Board, us: Color) -> i16 {
+        let mut mat = 0;
+        for sq in board.combined().into_iter() {
+            if board.color_on(sq).unwrap() == us {
+                mat += Self::piece_pts(board.piece_on(sq).unwrap())
+            } else {
+                mat -= Self::piece_pts(board.piece_on(sq).unwrap())
+            }
+        }
+        mat
     }
 
     //TODO: investigate tapered evaluation
