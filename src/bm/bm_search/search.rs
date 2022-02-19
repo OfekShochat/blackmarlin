@@ -276,6 +276,8 @@ pub fn search<Search: SearchType>(
     let mut moves_seen = 0;
     let mut move_exists = false;
 
+    let mut full_failed = 0;
+
     let mut quiets = ArrayVec::<Move, 64>::new();
     let mut captures = ArrayVec::<Move, 64>::new();
 
@@ -444,6 +446,10 @@ pub fn search<Search: SearchType>(
             if improving {
                 reduction -= 1;
             }
+            if full_failed > 3 && local_context.search_stack()[ply as usize - 1].eval > eval {
+                reduction += 1;
+            }
+
             reduction = reduction.min(depth as i16 - 1).max(0);
 
             let lmr_depth = (depth as i16 - reduction) as u32;
@@ -476,6 +482,10 @@ pub fn search<Search: SearchType>(
                     zw,
                 );
                 score = zw_score << Next;
+
+                if (alpha - score).raw() > 25 * lmr_depth as i16 {
+                    full_failed += 1;
+                }
             }
             /*
             If we don't get a fail low, this means the move has to be searched fully
