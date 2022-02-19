@@ -446,7 +446,7 @@ pub fn search<Search: SearchType>(
             if improving {
                 reduction -= 1;
             }
-            if full_failed > 3 && local_context.search_stack()[ply as usize - 1].eval > eval {
+            if !gives_check && full_failed > 4 {
                 reduction += 1;
             }
 
@@ -483,8 +483,8 @@ pub fn search<Search: SearchType>(
                 );
                 score = zw_score << Next;
 
-                if (alpha - score).raw() > 25 * lmr_depth as i16 {
-                    full_failed += 1;
+                if lmr_depth < 5 && (alpha - score).raw() > 25 * lmr_depth as i16 {
+                    full_failed += 1 * lmr_depth;
                 }
             }
             /*
