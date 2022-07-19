@@ -353,6 +353,9 @@ pub fn search<Search: SearchType>(
                     return s_beta;
                 }
             }
+            // if depth < 5 && moves_seen > 5 && (entry.score() + alpha).raw() / 2 + 200 > beta.raw() {
+            //     extension = 1;
+            // }
         }
 
         let non_mate_line = highest_score.map_or(false, |s: Evaluation| !s.is_mate());
@@ -428,10 +431,12 @@ pub fn search<Search: SearchType>(
 
             reduction -= history_lmr(h_score);
             if Search::PV {
-                reduction -= 1;
+                reduction -= 1 + (tt_entry.is_some() && tt_entry.unwrap().entry_type() == EntryType::Exact) as i16;
             };
             if improving {
                 reduction -= 1;
+            } else {
+                reduction += (tt_entry.is_some() && tt_entry.unwrap().entry_type() == EntryType::UpperBound) as i16;
             }
             if Some(make_move) == counter_move
                 || killers.into_iter().any(|killer| killer == make_move)
@@ -449,7 +454,7 @@ pub fn search<Search: SearchType>(
                 local_context,
                 shared_context,
                 ply + 1,
-                depth - 1 + extension,
+                depth - 1 + extension as u32,
                 beta >> Next,
                 alpha >> Next,
             );
@@ -463,7 +468,7 @@ pub fn search<Search: SearchType>(
                 local_context,
                 shared_context,
                 ply + 1,
-                lmr_depth - 1 + extension,
+                lmr_depth - 1 + extension as u32,
                 zw - 1,
                 zw,
             );
@@ -479,7 +484,7 @@ pub fn search<Search: SearchType>(
                     local_context,
                     shared_context,
                     ply + 1,
-                    depth - 1 + extension,
+                    depth - 1 + extension as u32,
                     zw - 1,
                     zw,
                 );
@@ -494,7 +499,7 @@ pub fn search<Search: SearchType>(
                     local_context,
                     shared_context,
                     ply + 1,
-                    depth - 1 + extension,
+                    depth - 1 + extension as u32,
                     beta >> Next,
                     alpha >> Next,
                 );
@@ -519,7 +524,7 @@ pub fn search<Search: SearchType>(
                 }
                 if score >= beta {
                     if !local_context.abort() {
-                        let amt = depth + extension;
+                        let amt = depth + extension as u32;
                         if !is_capture {
                             let killer_table = local_context.get_k_table();
                             killer_table[ply as usize].push(make_move);
